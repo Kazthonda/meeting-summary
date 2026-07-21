@@ -13,7 +13,7 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // IBM Service Essentials API 設定
-const IBM_API_BASE = 'https://servicesessentials.ibm.com/apis/v3';
+const IBM_API_BASE = 'https://api.nextgen-beta.ica.ibm.com/ica/v1';
 const IBM_API_KEY = process.env.IBM_API_KEY;
 const IBM_SERVICE_ID = process.env.IBM_SERVICE_ID || 'consulting-advantage';
 
@@ -237,7 +237,7 @@ async function generateMeetingMinutes(transcript) {
         };
 
         const response = await axios.post(
-            `${IBM_API_BASE}/generate`,
+            `${IBM_API_BASE}/text_generation`,
             payload,
             {
                 headers: {

@@ -34,8 +34,9 @@ COPY input/ ./input/
 # Create directories for uploads and cache
 RUN mkdir -p uploads output .cache
 
-# Set permissions
-RUN chmod -R 755 uploads output .cache
+# Set permissions and ownership
+RUN chmod -R 755 uploads output .cache && \
+    chown -R node:node /app
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \

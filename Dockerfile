@@ -42,6 +42,9 @@ RUN chmod -R 755 uploads output .cache && \
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:3000/api/admin/engine-info || exit 1
 
+# Set environment for production deployment
+ENV NODE_ENV=production
+
 # Expose port
 EXPOSE 3000
 

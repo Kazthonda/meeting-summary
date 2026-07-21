@@ -17,9 +17,12 @@ const IBM_API_BASE = 'https://api.nextgen-beta.ica.ibm.com/ica/v1';
 const IBM_API_KEY = process.env.IBM_API_KEY;
 const IBM_SERVICE_ID = process.env.IBM_SERVICE_ID || 'consulting-advantage';
 
+// Whisper モデルの自動選択（環境に応じて）
+const DEFAULT_MODEL = process.env.NODE_ENV === 'production' ? 'tiny' : 'base';
+
 // Whisper エンジンの初期化
 const whisperEngine = new WhisperEngine({
-    model: process.env.WHISPER_MODEL || 'base',
+    model: process.env.WHISPER_MODEL || DEFAULT_MODEL,
     useFasterWhisper: process.env.USE_FASTER_WHISPER === 'true',
     enableCache: process.env.ENABLE_CACHE !== 'false'
 });

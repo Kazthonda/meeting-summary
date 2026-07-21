@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>議事録自動生成システム</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 600px;
+            width: 100%;
+            padding: 40px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            color: #333;
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .upload-area {
+            border: 3px dashed #667eea;
+            border-radius: 8px;
+            padding: 40px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: #f8f9ff;
+            margin-bottom: 20px;
+        }
+
+        .upload-area:hover {
+            background: #f0f1ff;
+            border-color: #764ba2;
+        }
+
+        .upload-area.dragover {
+            background: #e8e9ff;
+            border-color: #764ba2;
+            box-shadow: 0 0 20px rgba(102, 126, 234, 0.2);
+        }
+
+        .upload-icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+        }
+
+        .upload-text {
+            color: #333;
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+
+        .upload-subtext {
+            color: #999;
+            font-size: 13px;
+        }
+
+        #fileInput {
+            display: none;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        button {
+            flex: 1;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-select {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-select:hover:not(:disabled) {
+            background: #764ba2;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-submit {
+            background: #48bb78;
+            color: white;
+        }
+
+        .btn-submit:hover:not(:disabled) {
+            background: #38a169;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(72, 187, 120, 0.3);
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .file-info {
+            background: #f0f4ff;
+            border-left: 4px solid #667eea;
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .file-info.show {
+            display: block;
+        }
+
+        .file-name {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 5px;
+            word-break: break-all;
+        }
+
+        .file-size {
+            color: #666;
+            font-size: 13px;
+        }
+
+        .format-selector {
+            margin-bottom: 20px;
+        }
+
+        .format-selector label {
+            display: block;
+            margin-bottom: 10px;
+            color: #333;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .format-options {
+            display: flex;
+            gap: 10px;
+        }
+
+        .format-option {
+            flex: 1;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.3s ease;
+            background: white;
+        }
+
+        .format-option input[type="radio"] {
+            display: none;
+        }
+
+        .format-option input[type="radio"]:checked + label {
+            color: #667eea;
+        }
+
+        .format-option:has(input[type="radio"]:checked) {
+            background: #f0f4ff;
+            border-color: #667eea;
+        }
+
+        .format-label {
+            font-weight: 600;
+            display: block;
+            font-size: 14px;
+            margin-bottom: 4px;
+        }
+
+        .format-sublabel {
+            font-size: 12px;
+            color: #999;
+        }
+
+        .progress {
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .progress.show {
+            display: block;
+        }
+
+        .progress-bar {
+            background: #e0e0e0;
+            height: 8px;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 10px;
+        }
+
+        .progress-fill {
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            height: 100%;
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        .progress-text {
+            color: #666;
+            font-size: 13px;
+            text-align: center;
+        }
+
+        .status-message {
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            display: none;
+            text-align: center;
+            font-weight: 600;
+        }
+
+        .status-message.show {
+            display: block;
+        }
+
+        .status-message.info {
+            background: #cce5ff;
+            color: #0052cc;
+            border-left: 4px solid #0052cc;
+        }
+
+        .status-message.success {
+            background: #dffcf0;
+            color: #276749;
+            border-left: 4px solid #48bb78;
+        }
+
+        .status-message.error {
+            background: #fce4e4;
+            color: #974646;
+            border-left: 4px solid #f56565;
+        }
+
+        .download-section {
+            margin-top: 20px;
+            display: none;
+        }
+
+        .download-section.show {
+            display: block;
+        }
+
+        .download-button {
+            width: 100%;
+            background: #48bb78;
+            color: white;
+            padding: 12px;
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-bottom: 10px;
+            transition: all 0.3s ease;
+        }
+
+        .download-button:hover {
+            background: #38a169;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(72, 187, 120, 0.3);
+        }
+
+        .separator {
+            text-align: center;
+            color: #ccc;
+            margin: 15px 0;
+            font-size: 12px;
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 20px;
+            }
+
+            .header h1 {
+                font-size: 22px;
+            }
+
+            .format-options {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎙️ 議事録自動生成</h1>
+            <p>iPhone で録音した音声ファイルから定型の議事録を自動作成</p>
+        </div>
+
+        <div class="upload-area" id="uploadArea">
+            <div class="upload-icon">📁</div>
+            <div class="upload-text">音声ファイルを選択または<br>ドラッグ&ドロップ</div>
+            <div class="upload-subtext">対応形式: MP3, M4A (最大100MB)</div>
+            <input type="file" id="fileInput" accept=".mp3,.m4a,.wav,.flac">
+        </div>
+
+        <div class="file-info" id="fileInfo">
+            <div class="file-name" id="fileName"></div>
+            <div class="file-size" id="fileSize"></div>
+        </div>
+
+        <div class="format-selector">
+            <label>出力形式を選択</label>
+            <div class="format-options">
+                <div class="format-option">
+                    <input type="radio" id="format-markdown" name="format" value="markdown" checked>
+                    <label for="format-markdown">
+                        <span class="format-label">Markdown</span>
+                        <span class="format-sublabel">編集しやすい</span>
+                    </label>
+                </div>
+                <div class="format-option">
+                    <input type="radio" id="format-docx" name="format" value="docx">
+                    <label for="format-docx">
+                        <span class="format-label">Word</span>
+                        <span class="format-sublabel">配布向き</span>
+                    </label>
+                </div>
+                <div class="format-option">
+                    <input type="radio" id="format-pdf" name="format" value="pdf">
+                    <label for="format-pdf">
+                        <span class="format-label">PDF</span>
+                        <span class="format-sublabel">確定版</span>
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <div class="button-group">
+            <button class="btn-select" id="selectButton">ファイル選択</button>
+            <button class="btn-submit" id="submitButton" disabled>処理開始</button>
+        </div>
+
+        <div class="status-message" id="statusMessage"></div>
+
+        <div class="progress" id="progress">
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+            <div class="progress-text" id="progressText">処理中...</div>
+        </div>
+
+        <div class="download-section" id="downloadSection">
+            <button class="download-button" id="downloadButton">
+                📥 議事録をダウンロード
+            </button>
+            <div class="separator">または</div>
+            <button class="download-button" id="resetButton" style="background: #667eea;">
+                🔄 別の音声ファイルで処理
+            </button>
+        </div>
+    </div>
+
+    <script>
+        let selectedFile = null;
+        let generatedContent = null;
+
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const fileInfo = document.getElementById('fileInfo');
+        const fileName = document.getElementById('fileName');
+        const fileSize = document.getElementById('fileSize');
+        const selectButton = document.getElementById('selectButton');
+        const submitButton = document.getElementById('submitButton');
+        const statusMessage = document.getElementById('statusMessage');
+        const progress = document.getElementById('progress');
+        const progressFill = document.getElementById('progressFill');
+        const progressText = document.getElementById('progressText');
+        const downloadSection = document.getElementById('downloadSection');
+        const downloadButton = document.getElementById('downloadButton');
+        const resetButton = document.getElementById('resetButton');
+        const formatRadios = document.querySelectorAll('input[name="format"]');
+
+        // ファイル選択ボタン
+        selectButton.addEventListener('click', () => fileInput.click());
+
+        // ファイル入力変更
+        fileInput.addEventListener('change', (e) => {
+            handleFileSelect(e.target.files[0]);
+        });
+
+        // ドラッグ&ドロップ
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            if (e.dataTransfer.files[0]) {
+                handleFileSelect(e.dataTransfer.files[0]);
+            }
+        });
+
+        function handleFileSelect(file) {
+            if (!file) return;
+
+            const validTypes = ['audio/mpeg', 'audio/mp4', 'audio/wav', 'audio/flac'];
+            if (!validTypes.some(type => file.type.includes(type.split('/')[1])) &&
+                !['.mp3', '.m4a', '.wav', '.flac'].some(ext => file.name.endsWith(ext))) {
+                showStatus('対応していないファイル形式です', 'error');
+                return;
+            }
+
+            selectedFile = file;
+            fileName.textContent = `📄 ${file.name}`;
+            fileSize.textContent = `サイズ: ${(file.size / 1024 / 1024).toFixed(2)} MB`;
+            fileInfo.classList.add('show');
+            submitButton.disabled = false;
+        }
+
+        submitButton.addEventListener('click', async () => {
+            if (!selectedFile) return;
+
+            const format = document.querySelector('input[name="format"]:checked').value;
+            await processAudio(selectedFile, format);
+        });
+
+        async function processAudio(file, format) {
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('format', format);
+
+            submitButton.disabled = true;
+            progress.classList.add('show');
+            downloadSection.classList.remove('show');
+            hideStatus();
+
+            try {
+                updateProgress(10, '音声ファイルをアップロード中...');
+
+                const response = await fetch('/api/process', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || '処理中にエラーが発生しました');
+                }
+
+                updateProgress(50, '音声を認識中...');
+
+                const result = await response.json();
+                generatedContent = result.content;
+                const filename = result.filename;
+
+                updateProgress(90, '議事録を生成中...');
+
+                showStatus('処理が完了しました！', 'success');
+                updateProgress(100, '完了');
+
+                // ダウンロードボタンの設定
+                downloadButton.onclick = () => downloadFile(filename);
+                downloadSection.classList.add('show');
+
+            } catch (error) {
+                showStatus(error.message, 'error');
+                submitButton.disabled = false;
+            } finally {
+                setTimeout(() => {
+                    progress.classList.remove('show');
+                }, 1000);
+            }
+        }
+
+        function updateProgress(percent, text) {
+            progressFill.style.width = percent + '%';
+            progressText.textContent = text;
+        }
+
+        function showStatus(message, type) {
+            statusMessage.textContent = message;
+            statusMessage.className = `status-message show ${type}`;
+        }
+
+        function hideStatus() {
+            statusMessage.classList.remove('show');
+        }
+
+        function downloadFile(filename) {
+            const link = document.createElement('a');
+            link.href = `/download/${filename}`;
+            link.download = filename;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        resetButton.addEventListener('click', () => {
+            selectedFile = null;
+            fileInput.value = '';
+            fileInfo.classList.remove('show');
+            downloadSection.classList.remove('show');
+            submitButton.disabled = true;
+            progress.classList.remove('show');
+            hideStatus();
+        });
+    </script>
+</body>
+</html>

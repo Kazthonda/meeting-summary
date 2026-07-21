@@ -1,8 +1,9 @@
+require('dotenv').config();
 const express = require('express');
 const multer = require('multer');
 const fs = require('fs');
 const path = require('path');
-const Anthropic = require('@anthropic-ai/sdk');
+const axios = require('axios');
 const mammoth = require('mammoth');
 const PDFDocument = require('pdfkit');
 const WhisperEngine = require('./lib/whisper-engine');
@@ -11,10 +12,10 @@ const GPUDetector = require('./lib/gpu-detector');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Anthropic API
-const anthropic = new Anthropic({
-    apiKey: process.env.ANTHROPIC_API_KEY
-});
+// IBM Service Essentials API 設定
+const IBM_API_BASE = 'https://servicesessentials.ibm.com/apis/v3';
+const IBM_API_KEY = process.env.IBM_API_KEY;
+const IBM_SERVICE_ID = process.env.IBM_SERVICE_ID || 'consulting-advantage';
 
 // Whisper エンジンの初期化
 const whisperEngine = new WhisperEngine({
@@ -213,25 +214,128 @@ async function transcribeAudio(filePath) {
     }
 }
 
-// 議事録生成関数（Claude API）
+// 議事録生成関数（IBM Service Essentials API）
 async function generateMeetingMinutes(transcript) {
     try {
-        const message = await anthropic.messages.create({
-            model: 'claude-3-5-sonnet-20241022',
-            max_tokens: 4000,
-            messages: [
-                {
-                    role: 'user',
-                    content: `${MEETING_SUMMARY_PROMPT}\n\nTranscript:\n\n${transcript}`
-                }
-            ]
-        });
+        console.log('📝 Generating meeting minutes...');
+        console.log(`🔑 API Key: ${IBM_API_KEY?.substring(0, 10)}...`);
 
-        return message.content[0].type === 'text' ? message.content[0].text : '';
+        // テストモード：IBM_API_KEY が 'test-' で始まる場合はモック
+        if (IBM_API_KEY?.startsWith('test-')) {
+            console.log('⚠️ Using mock IBM Service (test mode)');
+            return generateMockMeetingMinutes(transcript);
+        }
+
+        const payload = {
+            input: {
+                text: `${MEETING_SUMMARY_PROMPT}\n\nTranscript:\n\n${transcript}`
+            },
+            parameters: {
+                max_tokens: 4000,
+                temperature: 0.3
+            }
+        };
+
+        const response = await axios.post(
+            `${IBM_API_BASE}/generate`,
+            payload,
+            {
+                headers: {
+                    'Authorization': `Bearer ${IBM_API_KEY}`,
+                    'Content-Type': 'application/json',
+                    'X-IBM-Service-ID': IBM_SERVICE_ID,
+                    'Accept': 'application/json'
+                },
+                timeout: 60000
+            }
+        );
+
+        if (response.data && response.data.results && response.data.results[0]) {
+            const generatedText = response.data.results[0].generated_text;
+            console.log('✅ Meeting minutes generated successfully');
+            return generatedText;
+        } else {
+            throw new Error('Unexpected response format from IBM Service');
+        }
     } catch (error) {
-        console.error('Generation error:', error);
+        console.error('Generation error:', error.response?.data || error.message);
         throw new Error('議事録生成に失敗しました: ' + error.message);
     }
+}
+
+// モック議事録生成関数（テスト用）
+function generateMockMeetingMinutes(transcript) {
+    const date = new Date();
+    const dateStr = `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日`;
+
+    return `# 議事録
+
+## ■開催日時
+${dateStr}（テスト） 14:00～15:00
+
+## ■参加者
+### 日本側
+- 田中太郎（プロジェクトマネージャー）
+- 佐藤花子（エンジニア）
+
+### 北米側
+- John Smith（Product Manager）
+- Sarah Johnson（Developer）
+
+### IBM側
+- 山田次郎（コンサルタント）
+
+## ■議題
+1. プロジェクト進捗状況の確認
+2. 次フェーズのスケジュール
+3. 技術仕様の検討
+4. その他
+
+## ■決定事項
+### 議題1: プロジェクト進捗状況の確認
+- スコープ確定完了
+- 基本設計フェーズへ移行
+
+### 議題2: 次フェーズのスケジュール
+- 詳細設計：8月1日～31日
+- 開発フェーズ：9月1日～11月30日
+
+## ■宿題事項
+| No. | 内容 | 担当者 | 期限 |
+|-----|------|-------|------|
+| 1 | 基本設計ドキュメント作成 | 田中太郎 | 2026年7月31日 |
+| 2 | API仕様書レビュー | John Smith | 2026年7月28日 |
+| 3 | インフラ構成図作成 | 山田次郎 | 2026年7月29日 |
+
+## ■議事内容
+### 議題1: プロジェクト進捗状況の確認
+- 要件定義フェーズは予定通り完了
+- ステークホルダーレビューを実施
+- 承認は全員から取得
+
+### 議題2: 次フェーズのスケジュール
+- 詳細設計は8月開始予定
+- レビューサイクルは2週間ごと
+- 承認プロセスを短縮する予定
+
+### 議題3: 技術仕様の検討
+- マイクロサービスアーキテクチャを採用
+- Kubernetes を使用した運用
+- 監視ツールは Prometheus + Grafana
+
+### 議題4: その他
+- 次回ミーティングは8月4日（月）に予定
+
+## ■補足事項
+本会議は平常通り実施された。参加者全員から各項目について確認が取れた。特に技術仕様について詳細な検討が行われ、全員の合意を得た。
+
+---
+
+**生成日時**: ${date.toLocaleString('ja-JP')}
+**生成システム**: 議事録自動生成システム v1.3.0
+**議事記録テキスト**:
+${transcript.substring(0, 300)}...
+`;
 }
 
 // Markdown to DOCX変換

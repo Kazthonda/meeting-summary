@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(curl -s -X POST http://localhost:3000/api/admin/cache-clear)",
+      "Bash(rm /tmp/test_meeting.m4a)",
+      "Bash(ffmpeg -f lavfi -i anullsrc=r=16000:cl=mono -t 5 -c:a aac -b:a 128k /tmp/test_meeting.m4a -y)",
+      "Bash(/tmp/test_full_flow.sh)",
+      "Bash(cat)",
+      "Bash(chmod +x /tmp/test_download.sh)",
+      "Bash(/tmp/test_download.sh)",
+      "Bash(curl -s http://localhost:3000/)",
+      "Bash(git add *)"
+    ]
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python3 -m whisper /tmp/test_meeting.wav --model base --language ja --output_format json --output_dir /tmp --device mps)",
+      "Bash(python3 -c ' *)",
+      "Bash(pkill -f \"python.*whisper\")",
+      "Bash(cat)",
+      "Bash(chmod +x /tmp/test_admin_apis.sh)",
+      "Bash(/tmp/test_admin_apis.sh)",
+      "Bash(command -v ffmpeg)",
+      "Bash(ffmpeg -f lavfi -i anullsrc=r=16000:cl=mono -t 10 -q:a 9 -acodec libmp3lame /tmp/test_meeting.m4a)",
+      "Bash(ffmpeg -f lavfi -i anullsrc=r=16000:cl=mono -t 5 -c:a aac -b:a 128k /tmp/test_meeting.m4a -y)",
+      "Bash(chmod +x /tmp/test_full_flow.sh)",
+      "Bash(/tmp/test_full_flow.sh)",
+      "Bash(PORT=3000 npm start)"
+    ]
+  }
+}

@@ -1,4 +1,8 @@
-require('dotenv').config();
+try {
+  require('dotenv').config();
+} catch (e) {
+  // .env ファイルが存在しない場合は無視
+}
 const express = require('express');
 const multer = require('multer');
 const fs = require('fs');

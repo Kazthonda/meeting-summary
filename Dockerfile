@@ -6,13 +6,18 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y --no-install-recommends \
     python3 \
     python3-pip \
+    python3-venv \
     ffmpeg \
-    && pip install --no-cache-dir --upgrade pip \
-    && pip install --no-cache-dir openai-whisper \
+    && python3 -m venv /opt/venv \
+    && /opt/venv/bin/pip install --no-cache-dir --upgrade pip \
+    && /opt/venv/bin/pip install --no-cache-dir openai-whisper \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Pre-download Whisper model (base) to cache layer
-RUN python3 -c "import whisper; whisper.load_model('base')" || true
+RUN /opt/venv/bin/python3 -c "import whisper; whisper.load_model('base')" || true
+
+# Add venv to PATH for CMD execution
+ENV PATH="/opt/venv/bin:$PATH"
 
 # Install Node dependencies (with caching)
 COPY package*.json ./
